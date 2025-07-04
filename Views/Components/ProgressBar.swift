@@ -17,12 +17,14 @@ struct ProgressBar: View {
                     .fill(color)
                     .frame(width: geometry.size.width * (value / 100))
                 
-                // Text
-                Text(String(format: "%.1f%%", value))
-                    .font(.body)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
+                HStack {
+                    Spacer()
+                    Text(String(format: "%.1f%%", value))
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.trailing, 8)
+                }
             }
         }
         .frame(height: 24)

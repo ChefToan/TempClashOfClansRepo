@@ -19,7 +19,7 @@ struct MyProfileView: View {
                 
                 if let player = viewModel.player {
                     ScrollView {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 12) {
                             PlayerHeaderView(player: player)
                             
                             LeagueInfoView(player: player)

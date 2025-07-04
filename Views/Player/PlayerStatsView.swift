@@ -23,15 +23,16 @@ struct PlayerStatsView: View {
             
             // Stats list
             VStack(spacing: 0) {
-                StatRow(label: "Level", value: "\(player.expLevel)")
-                StatRow(label: "War Stars", value: formatNumber(player.warStars))
-                StatRow(label: "Donations", value: formatNumber(player.donations))
-                StatRow(label: "Donations Received", value: formatNumber(player.donationsReceived))
-                StatRow(label: "Defense Wins", value: formatNumber(player.defenseWins))
-                StatRow(label: "Capital Contributions", value: formatNumber(player.clanCapitalContributions))
+                StatRow(label: "Level", value: "\(player.expLevel)", showDivider: true)
+                StatRow(label: "War Stars", value: formatNumber(player.warStars), showDivider: true)
+                StatRow(label: "Donations", value: formatNumber(player.donations), showDivider: true)
+                StatRow(label: "Donations Received", value: formatNumber(player.donationsReceived), showDivider: true)
+                StatRow(label: "Defense Wins", value: formatNumber(player.defenseWins), showDivider: true)
+                StatRow(label: "Capital Contributions", value: formatNumber(player.clanCapitalContributions),
+                       showDivider: player.warPreference != nil)
                 
                 if let warPreference = player.warPreference {
-                    StatRow(label: "War Preference", value: warPreference.capitalized)
+                    StatRow(label: "War Preference", value: warPreference.capitalized, showDivider: false)
                 }
             }
             .background(Constants.cardBackground)
@@ -47,6 +48,7 @@ struct PlayerStatsView: View {
 struct StatRow: View {
     let label: String
     let value: String
+    let showDivider: Bool
     
     var body: some View {
         VStack(spacing: 0) {
@@ -62,10 +64,13 @@ struct StatRow: View {
                     .foregroundColor(.white)
                     .font(.body)
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             
-            Divider()
-                .background(Color.gray.opacity(0.3))
+            if showDivider {
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+            }
         }
     }
 }

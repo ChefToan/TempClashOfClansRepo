@@ -22,16 +22,16 @@ struct LeagueInfoView: View {
                 .background(Color.black)
 
             // Content
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 // Current League Section
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     Text("Current League")
-                        .font(.title2)
+                        .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                     
                     Image(systemName: "shield.fill")
-                        .font(.system(size: 80))
+                        .font(.system(size: 60))
                         .foregroundColor(Constants.purple)
                     
                     if let league = player.league {
@@ -135,7 +135,7 @@ struct LeagueInfoView: View {
                     }
                 }
             }
-            .padding(.vertical, 20)
+            .padding(.vertical, 16)
             .padding(.horizontal)
             .frame(maxWidth: .infinity) // Ensure it fills horizontally
             .background(Constants.cardBackground)

@@ -19,7 +19,7 @@ struct PlayerDetailView: View {
             .ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     // Action buttons
                     HStack(spacing: 15) {
                         Button {
