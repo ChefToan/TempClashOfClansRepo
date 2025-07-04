@@ -23,6 +23,7 @@ class SearchViewModel: ObservableObject {
         
         isLoading = true
         errorMessage = nil
+        player = nil
         
         do {
             let player = try await apiService.getPlayerEssentials(tag: searchTag)
@@ -43,21 +44,34 @@ class SearchViewModel: ObservableObject {
         isLoading = true
         
         do {
+            // Save the profile
             try await DataController.shared.saveProfile(player)
-            showSuccess = true
-            HapticManager.shared.successFeedback()
             
-            // Clear search state
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Verify the save was successful
+            if let savedPlayer = try await DataController.shared.getProfile() {
+                // Post notification with the saved player data
+                NotificationCenter.default.post(
+                    name: Notification.Name("ProfileSaved"),
+                    object: savedPlayer
+                )
+                
+                showSuccess = true
+                HapticManager.shared.successFeedback()
+                
+                // Clear search state after a delay
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                
                 self.searchTag = ""
                 self.player = nil
                 self.showSuccess = false
+                
+                isLoading = false
+                return true
+            } else {
+                throw APIError.decodingError
             }
-            
-            isLoading = false
-            return true
         } catch {
-            errorMessage = "Failed to save profile"
+            errorMessage = "Failed to save profile: \(error.localizedDescription)"
             showError = true
             HapticManager.shared.errorFeedback()
             isLoading = false
@@ -73,9 +87,11 @@ class SearchViewModel: ObservableObject {
         do {
             let refreshed = try await apiService.refreshPlayerEssentials(tag: currentPlayer.playerTag)
             self.player = refreshed
+            HapticManager.shared.successFeedback()
         } catch {
-            errorMessage = "Failed to refresh"
+            errorMessage = "Failed to refresh: \(error.localizedDescription)"
             showError = true
+            HapticManager.shared.errorFeedback()
         }
         
         isLoading = false

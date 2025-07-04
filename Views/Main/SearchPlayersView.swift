@@ -5,6 +5,7 @@ struct SearchPlayersView: View {
     @StateObject private var viewModel = SearchViewModel()
     @EnvironmentObject var tabState: TabState
     @State private var showPlayerDetail = false
+    @FocusState private var isSearchFieldFocused: Bool
     
     var body: some View {
         NavigationStack {
@@ -59,6 +60,21 @@ struct SearchPlayersView: View {
                                     .foregroundColor(.white)
                                     .autocapitalization(.allCharacters)
                                     .disableAutocorrection(true)
+                                    .focused($isSearchFieldFocused)
+                                    .onSubmit {
+                                        if !viewModel.searchTag.isEmpty {
+                                            performSearch()
+                                        }
+                                    }
+                                
+                                if !viewModel.searchTag.isEmpty {
+                                    Button {
+                                        viewModel.searchTag = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.gray)
+                                    }
+                                }
                             }
                             .padding()
                             .background(Color.white.opacity(0.1))
@@ -69,29 +85,33 @@ struct SearchPlayersView: View {
                             )
                             
                             Button {
-                                Task {
-                                    await viewModel.searchPlayer()
-                                    if viewModel.player != nil {
-                                        showPlayerDetail = true
-                                    }
-                                }
+                                performSearch()
                             } label: {
                                 HStack {
-                                    Image(systemName: "magnifyingglass")
+                                    if viewModel.isLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "magnifyingglass")
+                                    }
                                     Text("Search")
                                         .fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Constants.blue)
+                                .background(viewModel.searchTag.isEmpty ? Color.gray : Constants.blue)
                                 .foregroundColor(.white)
                                 .cornerRadius(15)
                             }
-                            .disabled(viewModel.searchTag.isEmpty)
+                            .disabled(viewModel.searchTag.isEmpty || viewModel.isLoading)
                         }
                         .padding(.horizontal, 40)
                         
                         Spacer()
+                    }
+                    .onTapGesture {
+                        isSearchFieldFocused = false
                     }
                 }
             }
@@ -105,8 +125,16 @@ struct SearchPlayersView: View {
                             Task {
                                 let saved = await viewModel.saveAsProfile()
                                 if saved {
+                                    // Wait a bit to ensure data is fully saved
+                                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                                    
+                                    // Navigate away from detail view first
                                     showPlayerDetail = false
-                                    tabState.switchToProfile()
+                                    
+                                    // Then switch to profile tab
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        tabState.switchToProfile()
+                                    }
                                 }
                             }
                         },
@@ -114,20 +142,35 @@ struct SearchPlayersView: View {
                             viewModel.player = nil
                             viewModel.searchTag = ""
                             showPlayerDetail = false
+                            // Focus the search field when going back
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                isSearchFieldFocused = true
+                            }
                         }
                     )
                 }
             }
-
+            .alert("Error", isPresented: $viewModel.showError) {
+                Button("OK") {
+                    viewModel.showError = false
+                }
+            } message: {
+                Text(viewModel.errorMessage ?? "Unknown error")
+            }
             .overlay {
-                if viewModel.isLoading {
+                if viewModel.isLoading && viewModel.player == nil {
                     LoadingView()
                 }
             }
-            .alert("Error", isPresented: $viewModel.showError) {
-                Button("OK") { }
-            } message: {
-                Text(viewModel.errorMessage ?? "Unknown error")
+        }
+    }
+    
+    private func performSearch() {
+        isSearchFieldFocused = false
+        Task {
+            await viewModel.searchPlayer()
+            if viewModel.player != nil {
+                showPlayerDetail = true
             }
         }
     }

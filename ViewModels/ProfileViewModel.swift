@@ -14,16 +14,21 @@ class ProfileViewModel: ObservableObject {
     func loadProfile() async {
         isLoading = true
         noProfile = false
-        player = nil // Clear existing player data
+        player = nil
+        errorMessage = nil
+        
+        // Small delay to ensure any pending saves are complete
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         
         do {
             // Try to load from local storage
             if let savedPlayer = try await DataController.shared.getProfile() {
                 self.player = savedPlayer
+                self.noProfile = false
                 
                 // Then refresh from API in background
-                Task {
-                    await refreshProfile()
+                Task.detached { [weak self] in
+                    await self?.refreshProfile()
                 }
             } else {
                 noProfile = true
@@ -41,7 +46,9 @@ class ProfileViewModel: ObservableObject {
         
         do {
             let refreshed = try await apiService.refreshPlayerEssentials(tag: currentPlayer.playerTag)
-            self.player = refreshed
+            await MainActor.run {
+                self.player = refreshed
+            }
             
             // Save updated data
             try await DataController.shared.saveProfile(refreshed)
@@ -54,5 +61,19 @@ class ProfileViewModel: ObservableObject {
     func clearProfile() {
         player = nil
         noProfile = true
+        errorMessage = nil
+    }
+    
+    func setPlayerData(_ player: PlayerEssentials) {
+        self.player = player
+        self.noProfile = false
+        self.errorMessage = nil
+        self.isLoading = false
+    }
+    
+    func forceReload() async {
+        // Force a complete reload with delay
+        player = nil
+        await loadProfile()
     }
 }

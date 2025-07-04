@@ -6,6 +6,7 @@ struct PlayerDetailView: View {
     @ObservedObject var viewModel: SearchViewModel
     let onSaveProfile: () -> Void
     let onNewSearch: () -> Void
+    @State private var isSavingProfile = false
     
     var body: some View {
         ZStack {
@@ -22,19 +23,29 @@ struct PlayerDetailView: View {
                     // Action buttons
                     HStack(spacing: 15) {
                         Button {
-                            onSaveProfile()
+                            if !isSavingProfile {
+                                isSavingProfile = true
+                                onSaveProfile()
+                            }
                         } label: {
                             HStack {
-                                Image(systemName: "person.badge.plus")
+                                if isSavingProfile {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "person.badge.plus")
+                                }
                                 Text("Save Profile")
                                     .fontWeight(.medium)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Constants.blue)
+                            .background(isSavingProfile ? Color.gray : Constants.blue)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
+                        .disabled(isSavingProfile)
                         
                         Button {
                             onNewSearch()
@@ -90,7 +101,15 @@ struct PlayerDetailView: View {
                     .padding(.bottom, 50)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(), value: viewModel.showSuccess)
             }
+        }
+        .alert("Error", isPresented: $viewModel.showError) {
+            Button("OK") {
+                viewModel.showError = false
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "Unknown error")
         }
     }
 }

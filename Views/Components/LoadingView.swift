@@ -6,7 +6,7 @@ struct LoadingView: View {
     
     var body: some View {
         ZStack {
-            Color.black.opacity(0.4)
+            Color.black.opacity(0.6)
                 .ignoresSafeArea()
             
             VStack(spacing: 20) {
@@ -41,11 +41,14 @@ struct LoadingView: View {
             }
             .padding(40)
             .background(
-                Color.black.opacity(0.9)
-                    .blur(radius: 40)
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(hex: "#1a1a2e"))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
             )
-            .cornerRadius(20)
-            .shadow(radius: 20)
+            .shadow(color: .black.opacity(0.5), radius: 20)
         }
         .onAppear {
             isAnimating = true

@@ -4,6 +4,7 @@ import SwiftUI
 struct MyProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @EnvironmentObject var tabState: TabState
+    @State private var hasInitiallyLoaded = false
     
     var body: some View {
         NavigationStack {
@@ -21,11 +22,11 @@ struct MyProfileView: View {
                         VStack(spacing: 16) {
                             PlayerHeaderView(player: player)
                             
+                            LeagueInfoView(player: player)
+                            
                             if player.league?.name.contains("Legend") == true {
                                 TrophyChartView(playerTag: player.playerTag)
                             }
-                            
-                            LeagueInfoView(player: player)
                             
                             PlayerStatsView(player: player)
                             
@@ -77,16 +78,44 @@ struct MyProfileView: View {
             }
             .navigationTitle("My Profile")
             .navigationBarTitleDisplayMode(.large)
-            .task {
-                await viewModel.loadProfile()
+            .onAppear {
+                // Load profile when view appears if not already loaded
+                if !hasInitiallyLoaded || viewModel.player == nil {
+                    hasInitiallyLoaded = true
+                    Task {
+                        await viewModel.loadProfile()
+                    }
+                }
+            }
+            .onChange(of: tabState.selectedTab) { oldValue, newValue in
+                // Reload when switching to profile tab
+                if newValue == .profile && oldValue != .profile {
+                    Task {
+                        await viewModel.loadProfile()
+                    }
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ProfileDeleted"))) { _ in
                 viewModel.clearProfile()
+                hasInitiallyLoaded = false
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ProfileSaved"))) { notification in
+                // Immediately update with the saved player data
+                if let savedPlayer = notification.object as? PlayerEssentials {
+                    viewModel.setPlayerData(savedPlayer)
+                }
             }
             .overlay {
                 if viewModel.isLoading && viewModel.player == nil {
                     LoadingView()
                 }
+            }
+            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("OK") {
+                    viewModel.errorMessage = nil
+                }
+            } message: {
+                Text(viewModel.errorMessage ?? "Unknown error")
             }
         }
     }

@@ -12,7 +12,7 @@ enum TabSection: Int {
 struct ClashOfClansTrackerApp: App {
     @StateObject private var dataController = DataController.shared
     @StateObject private var tabState = TabState.shared
-    @AppStorage("isDarkMode") private var isDarkMode: Bool = true
+    @State private var hasCheckedProfile = false
     
     var body: some Scene {
         WindowGroup {
@@ -22,7 +22,7 @@ struct ClashOfClansTrackerApp: App {
                 }
                 .tabItem {
                     Image(systemName: "magnifyingglass")
-                    Text("Search")
+                    Text("Search Players")
                 }
                 .tag(TabSection.search)
                 
@@ -31,7 +31,7 @@ struct ClashOfClansTrackerApp: App {
                 }
                 .tabItem {
                     Image(systemName: "person.fill")
-                    Text("Profile")
+                    Text("My Profile")
                 }
                 .tag(TabSection.profile)
                 
@@ -44,12 +44,22 @@ struct ClashOfClansTrackerApp: App {
                 }
                 .tag(TabSection.settings)
             }
-            .preferredColorScheme(isDarkMode ? .dark : .light)
+            .tint(Constants.blue)
+            .preferredColorScheme(.dark) // Always dark mode
             .modelContainer(dataController.container)
             .environmentObject(tabState)
+            .environmentObject(dataController)
             .task {
-                if await dataController.hasProfile() {
-                    tabState.selectedTab = .profile
+                if !hasCheckedProfile {
+                    hasCheckedProfile = true
+                    // Check if user has a profile saved
+                    if await dataController.hasProfile() {
+                        // Start at profile tab if they have a saved profile
+                        tabState.selectedTab = .profile
+                    } else {
+                        // Start at search tab if no profile
+                        tabState.selectedTab = .search
+                    }
                 }
             }
         }
@@ -61,6 +71,8 @@ class TabState: ObservableObject {
     static let shared = TabState()
     @Published var selectedTab: TabSection = .search
     
+    private init() {}
+    
     func switchToProfile() {
         withAnimation(.spring()) {
             selectedTab = .profile
@@ -70,6 +82,12 @@ class TabState: ObservableObject {
     func switchToSearch() {
         withAnimation(.spring()) {
             selectedTab = .search
+        }
+    }
+    
+    func switchToSettings() {
+        withAnimation(.spring()) {
+            selectedTab = .settings
         }
     }
 }

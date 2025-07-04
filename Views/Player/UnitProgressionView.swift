@@ -17,8 +17,23 @@ struct UnitProgressionView: View {
             // Content
             VStack(spacing: 16) {
                 // Total progress
-                let totalProgress = calculateTotalProgress()
-                ProgressBar(value: totalProgress, color: Constants.blue, title: "TOTAL PROGRESSION")
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("TOTAL PROGRESSION")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Constants.blue)
+                            .frame(height: 40)
+                        
+                        Text(String(format: "%.1f%%", calculateTotalProgress()))
+                            .font(.body)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                    }
+                }
                 
                 // Heroes
                 if !player.heroes.isEmpty {
