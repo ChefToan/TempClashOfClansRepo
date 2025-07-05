@@ -2,7 +2,7 @@
 import Foundation
 
 // Main player essentials model matching the API response
-struct PlayerEssentials: Codable, Identifiable {
+struct PlayerEssentials: Codable, Identifiable, Hashable {
     var id: String { playerTag }
     
     let clan: ClanInfo?
@@ -34,27 +34,36 @@ struct PlayerEssentials: Codable, Identifiable {
     var bestTrophies: Int {
         return achievements?.value ?? trophies
     }
+    
+    // Hashable conformance
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(playerTag)
+    }
+    
+    static func == (lhs: PlayerEssentials, rhs: PlayerEssentials) -> Bool {
+        lhs.playerTag == rhs.playerTag
+    }
 }
 
 // Supporting models
-struct ClanInfo: Codable {
+struct ClanInfo: Codable, Hashable {
     let name: String
     let tag: String
     let badgeUrls: BadgeUrls
     let clanLevel: Int
 }
 
-struct BadgeUrls: Codable {
+struct BadgeUrls: Codable, Hashable {
     let small: String
     let medium: String
     let large: String
 }
 
-struct LeagueInfo: Codable {
+struct LeagueInfo: Codable, Hashable {
     let name: String
 }
 
-struct Achievement: Codable {
+struct Achievement: Codable, Hashable {
     let completionInfo: String
     let info: String
     let name: String
@@ -64,7 +73,7 @@ struct Achievement: Codable {
     let village: String
 }
 
-struct LegendsInfo: Codable {
+struct LegendsInfo: Codable, Hashable {
     let globalRank: Int?
     let localRank: Int?
     let previousSeason: SeasonInfo?
@@ -78,13 +87,13 @@ struct LegendsInfo: Codable {
     }
 }
 
-struct SeasonInfo: Codable {
+struct SeasonInfo: Codable, Hashable {
     let id: String?
     let rank: Int?
     let trophies: Int?
 }
 
-struct GameItem: Codable, Identifiable {
+struct GameItem: Codable, Identifiable, Hashable {
     var id: String { "\(name)_\(level)" }
     
     let name: String
@@ -98,7 +107,7 @@ struct GameItem: Codable, Identifiable {
     }
 }
 
-struct HeroEquipment: Codable {
+struct HeroEquipment: Codable, Hashable {
     let barbarianKing: [EquipmentItem]
     let archerQueen: [EquipmentItem]
     let minionPrince: [EquipmentItem]
@@ -106,7 +115,7 @@ struct HeroEquipment: Codable {
     let royalChampion: [EquipmentItem]
 }
 
-struct EquipmentItem: Codable, Identifiable {
+struct EquipmentItem: Codable, Identifiable, Hashable {
     var id: String { "\(name)_\(level)" }
     
     let name: String

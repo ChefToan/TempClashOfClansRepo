@@ -16,26 +16,7 @@ struct UnitProgressionView: View {
             
             // Content
             VStack(spacing: 16) {
-                // Total progress
-//                VStack(alignment: .leading, spacing: 12) {
-//                    Text("TOTAL PROGRESSION")
-//                        .font(.body)
-//                        .fontWeight(.semibold)
-//                        .foregroundColor(.white)
-//                    
-//                    ZStack {
-//                        RoundedRectangle(cornerRadius: 8)
-//                            .fill(Constants.blue)
-//                            .frame(height: 40)
-//                        
-//                        Text(String(format: "%.1f%%", calculateTotalProgress()))
-//                            .font(.body)
-//                            .fontWeight(.bold)
-//                            .foregroundColor(.white)
-//                    }
-//                }
-                
-                // Heroes
+                // Heroes - already filtered for home village only
                 if !player.heroes.isEmpty {
                     UnitCategoryView(
                         title: "HEROES",
@@ -71,7 +52,7 @@ struct UnitProgressionView: View {
                     }
                 }
                 
-                // Pets
+                // Pets - already filtered for home village only
                 if !player.pets.isEmpty {
                     UnitCategoryView(
                         title: "PETS",
@@ -80,25 +61,27 @@ struct UnitProgressionView: View {
                     )
                 }
                 
-                // Troops
-                if !player.elixirTroops.isEmpty {
+                // Troops - Filter out builder base troops
+                let homeVillageTroops = player.elixirTroops.filter { $0.village == "home" }
+                if !homeVillageTroops.isEmpty {
                     UnitCategoryView(
                         title: "TROOPS",
-                        items: player.elixirTroops,
+                        items: homeVillageTroops,
                         color: Constants.purple
                     )
                 }
                 
-                // Dark Troops
-                if !player.darkElixirTroops.isEmpty {
+                // Dark Troops - Filter out builder base troops
+                let homeVillageDarkTroops = player.darkElixirTroops.filter { $0.village == "home" }
+                if !homeVillageDarkTroops.isEmpty {
                     UnitCategoryView(
                         title: "DARK TROOPS",
-                        items: player.darkElixirTroops,
+                        items: homeVillageDarkTroops,
                         color: Color(hex: "#6c5ce7")
                     )
                 }
                 
-                // Siege Machines
+                // Siege Machines - already home village only
                 if !player.siegeMachines.isEmpty {
                     UnitCategoryView(
                         title: "SIEGE MACHINES",
@@ -107,12 +90,12 @@ struct UnitProgressionView: View {
                     )
                 }
                 
-                // Spells
-                let allSpells = player.elixirSpells + player.darkElixirSpells
-                if !allSpells.isEmpty {
+                // Spells - Filter out builder base spells
+                let homeVillageSpells = (player.elixirSpells + player.darkElixirSpells).filter { $0.village == "home" }
+                if !homeVillageSpells.isEmpty {
                     UnitCategoryView(
                         title: "SPELLS",
-                        items: allSpells,
+                        items: homeVillageSpells,
                         color: Color.cyan
                     )
                 }
@@ -188,19 +171,6 @@ struct UnitProgressionView: View {
         guard !items.isEmpty else { return 0 }
         let totalCurrent = items.reduce(0) { $0 + $1.level }
         let totalMax = items.reduce(0) { $0 + $1.maxLevel }
-        return totalMax > 0 ? (Double(totalCurrent) / Double(totalMax)) * 100 : 0
-    }
-    
-    private func calculateTotalProgress() -> Double {
-        let allItems = player.heroes + getAllEquipment() + player.pets +
-                       player.elixirTroops + player.darkElixirTroops +
-                       player.siegeMachines + player.elixirSpells + player.darkElixirSpells
-        
-        guard !allItems.isEmpty else { return 0 }
-        
-        let totalCurrent = allItems.reduce(0) { $0 + $1.level }
-        let totalMax = allItems.reduce(0) { $0 + $1.maxLevel }
-        
         return totalMax > 0 ? (Double(totalCurrent) / Double(totalMax)) * 100 : 0
     }
 }

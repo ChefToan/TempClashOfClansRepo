@@ -43,7 +43,46 @@ struct ItemView: View {
         // Add appropriate prefix based on item type
         if item.village == "home" {
             if item.name.contains("Spell") {
-                return "spell_\(name.replacingOccurrences(of: "_spell", with: ""))"
+                // Handle spell naming conventions
+                let spellName = item.name.replacingOccurrences(of: " Spell", with: "")
+                    .lowercased()
+                    .replacingOccurrences(of: " ", with: "_")
+                
+                // Special cases for spells with different naming conventions
+                switch spellName {
+                case "lightning":
+                    return "spell_lightning"
+                case "healing":
+                    return "spell_healing"
+                case "rage":
+                    return "spell_rage"
+                case "jump":
+                    return "spell_jump"
+                case "freeze":
+                    return "spell_freeze"
+                case "clone":
+                    return "spell_clone"
+                case "invisibility":
+                    return "spell_invisibility"
+                case "recall":
+                    return "spell_recall"
+                case "poison":
+                    return "spell_poison_spell"
+                case "earthquake":
+                    return "spell_earthquake_spell"
+                case "haste":
+                    return "spell_haste_spell"
+                case "skeleton":
+                    return "spell_skeleton_spell"
+                case "bat":
+                    return "spell_bat_spell"
+                case "overgrowth":
+                    return "spell_overgrowth"
+                case "revive":
+                    return "spell_revive"
+                default:
+                    return "spell_\(spellName)"
+                }
             } else if ["L.A.S.S.I", "Electro Owl", "Mighty Yak", "Unicorn", "Phoenix",
                        "Poison Lizard", "Diggy", "Frosty", "Spirit Fox", "Angry Jelly",
                        "Sneezy"].contains(item.name) {

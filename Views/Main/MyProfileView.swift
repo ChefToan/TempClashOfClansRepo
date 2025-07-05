@@ -59,9 +59,10 @@ struct MyProfileView: View {
                         await performRefresh()
                     }
                 } else if viewModel.noProfile && !viewModel.isLoading {
-                    // No profile view with Lottie animation
-                    VStack(spacing: 30) {
+                    // No profile view with Lottie animation - positioned higher
+                    VStack(spacing: 40) {
                         Spacer()
+                            .frame(height: 20) // Much smaller top spacer to move content up
                         
                         // Lottie animation placeholder
                         LottieView(animation: .named("empty-state"))
@@ -79,24 +80,27 @@ struct MyProfileView: View {
                                 .multilineTextAlignment(.center)
                         }
                         
-                        Button {
-                            HapticManager.shared.lightImpactFeedback()
-                            tabState.switchToSearch()
-                        } label: {
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                Text("Search Now")
+                        VStack(spacing: 20) {
+                            Button {
+                                HapticManager.shared.lightImpactFeedback()
+                                tabState.switchToSearch()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "magnifyingglass")
+                                    Text("Search Now")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Constants.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(15)
                             }
-                            .padding()
-                            .padding(.horizontal, 30)
-                            .background(Constants.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(15)
                         }
+                        .padding(.horizontal, 40) // Match Search view horizontal padding
                         
-                        Spacer()
+                        Spacer() // This will take up remaining space
                     }
-                    .padding()
                 }
             }
             .navigationTitle("My Profile")

@@ -8,9 +8,21 @@ struct TrophyChartView: View {
     @State private var hasError = false
     @State private var isLoading = true
     @State private var retryCount = 0
+    @State private var lastLoadTime = Date()
     
     private var chartURL: URL? {
         APIService.shared.getChartURL(tag: playerTag)
+    }
+    
+    // Configure Kingfisher cache for 5 minutes
+    private var cacheOptions: KingfisherOptionsInfo {
+        let cacheExpiration = StorageExpiration.seconds(300) // 5 minutes
+        return [
+            .cacheMemoryOnly, // Use memory cache only for quick access
+            .diskCacheExpiration(cacheExpiration),
+            .memoryCacheExpiration(cacheExpiration),
+            .forceRefresh // Force refresh if cache is expired
+        ]
     }
     
     var body: some View {
@@ -32,6 +44,10 @@ struct TrophyChartView: View {
                 
                 if let url = chartURL {
                     KFImage(url)
+                        .setProcessor(DefaultImageProcessor()) // Ensure fresh processing
+                        .cacheOriginalImage() // Cache the original image
+                        .diskCacheExpiration(.seconds(300)) // 5 minute disk cache
+                        .memoryCacheExpiration(.seconds(300)) // 5 minute memory cache
                         .placeholder {
                             VStack {
                                 ProgressView()
@@ -46,6 +62,7 @@ struct TrophyChartView: View {
                         .onSuccess { _ in
                             isLoading = false
                             hasError = false
+                            lastLoadTime = Date()
                         }
                         .onFailure { _ in
                             isLoading = false
@@ -122,6 +139,12 @@ struct TrophyChartView: View {
         .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
         .id(retryCount) // Force reload on retry
+        .onAppear {
+            // Check if we need to refresh based on last load time
+            if Date().timeIntervalSince(lastLoadTime) > 300 { // 5 minutes
+                retryCount += 1 // Force reload
+            }
+        }
         .fullScreenCover(isPresented: $showFullScreen) {
             if let url = chartURL {
                 ImageViewer(url: url, isPresented: $showFullScreen)

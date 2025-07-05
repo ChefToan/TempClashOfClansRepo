@@ -61,8 +61,6 @@ class SearchViewModel: ObservableObject {
                 // Clear search state after a delay
                 try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                 
-                self.searchTag = ""
-                self.player = nil
                 self.showSuccess = false
                 
                 isLoading = false
@@ -95,5 +93,23 @@ class SearchViewModel: ObservableObject {
         }
         
         isLoading = false
+    }
+    
+    // Clear just the current player, not the search tag
+    func clearCurrentSearch() {
+        player = nil
+        errorMessage = nil
+        showError = false
+        showSuccess = false
+        // Keep searchTag so user can modify their search
+    }
+    
+    // Clear everything for a fresh search
+    func clearAll() {
+        searchTag = ""
+        player = nil
+        errorMessage = nil
+        showError = false
+        showSuccess = false
     }
 }

@@ -14,10 +14,16 @@ struct ImageViewer: View {
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
     @State private var isLoadingImage = false
+    @State private var dragOffset: CGSize = .zero
+    @State private var opacity: Double = 1.0
+    
+    private let dismissThreshold: CGFloat = 150
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.black
+                .opacity(opacity * 0.9)
+                .ignoresSafeArea()
             
             if let url = url {
                 KFImage(url)
@@ -36,13 +42,47 @@ struct ImageViewer: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .scaleEffect(scale)
-                    .offset(offset)
+                    .offset(x: offset.width, y: offset.height + dragOffset.height)
+                    .opacity(opacity)
                     .gesture(
+                        // Only allow drag to dismiss when not zoomed
+                        scale <= 1.0 ?
+                        DragGesture()
+                            .onChanged { value in
+                                dragOffset = value.translation
+                                // Calculate opacity based on drag distance
+                                let progress = Double(abs(value.translation.height) / dismissThreshold)
+                                opacity = max(0.3, 1 - progress * 0.5)
+                            }
+                            .onEnded { value in
+                                if abs(value.translation.height) > dismissThreshold {
+                                    // Dismiss
+                                    withAnimation(.easeOut(duration: 0.2)) {
+                                        dragOffset.height = value.translation.height > 0 ?
+                                            UIScreen.main.bounds.height : -UIScreen.main.bounds.height
+                                        opacity = 0
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                        isPresented = false
+                                    }
+                                } else {
+                                    // Snap back
+                                    withAnimation(.spring()) {
+                                        dragOffset = .zero
+                                        opacity = 1.0
+                                    }
+                                }
+                            }
+                        : nil
+                    )
+                    .simultaneousGesture(
                         MagnificationGesture()
                             .onChanged { value in
-                                let delta = value / lastScale
-                                lastScale = value
-                                scale = min(max(scale * delta, 1), 4)
+                                if dragOffset == .zero { // Only allow zoom when not dragging
+                                    let delta = value / lastScale
+                                    lastScale = value
+                                    scale = min(max(scale * delta, 1), 4)
+                                }
                             }
                             .onEnded { _ in
                                 lastScale = 1.0
@@ -55,6 +95,7 @@ struct ImageViewer: View {
                             }
                     )
                     .simultaneousGesture(
+                        scale > 1.0 ?
                         DragGesture()
                             .onChanged { value in
                                 offset = CGSize(
@@ -70,6 +111,7 @@ struct ImageViewer: View {
                                     }
                                 }
                             }
+                        : nil
                     )
                     .onTapGesture(count: 2) {
                         withAnimation {
@@ -122,6 +164,7 @@ struct ImageViewer: View {
                             .clipShape(Circle())
                     }
                     .padding()
+                    .opacity(opacity)
                 }
                 Spacer()
             }

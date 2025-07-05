@@ -15,6 +15,7 @@ struct ClashOfClansTrackerApp: App {
     @StateObject private var tabState = TabState.shared
     @StateObject private var networkMonitor = NetworkMonitor()
     @State private var hasCheckedProfile = false
+    @State private var previousTab: TabSection = .search
     
     var body: some Scene {
         WindowGroup {
@@ -68,27 +69,14 @@ struct ClashOfClansTrackerApp: App {
             .onChange(of: networkMonitor.isConnected) { _, isConnected in
                 dataController.setOfflineStatus(!isConnected)
             }
-            .gesture(
-                DragGesture()
-                    .onEnded { value in
-                        let threshold: CGFloat = 50
-                        let currentIndex = tabState.selectedTab.rawValue
-                        
-                        if value.translation.width > threshold {
-                            // Swipe right - go to previous tab
-                            if currentIndex > 0 {
-                                HapticManager.shared.selectionFeedback()
-                                tabState.selectedTab = TabSection(rawValue: currentIndex - 1) ?? .search
-                            }
-                        } else if value.translation.width < -threshold {
-                            // Swipe left - go to next tab
-                            if currentIndex < TabSection.allCases.count - 1 {
-                                HapticManager.shared.selectionFeedback()
-                                tabState.selectedTab = TabSection(rawValue: currentIndex + 1) ?? .settings
-                            }
-                        }
-                    }
-            )
+            .onChange(of: tabState.selectedTab) { oldValue, newValue in
+                // Add haptic feedback when tab changes
+                if oldValue != newValue {
+                    HapticManager.shared.selectionFeedback()
+                }
+                previousTab = oldValue
+            }
+            // Remove the custom swipe gesture - let NavigationStack handle navigation
         }
     }
 }
