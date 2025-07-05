@@ -5,6 +5,8 @@ import SwiftData
 enum DataControllerError: LocalizedError {
     case saveFailed
     case contextSaveFailed
+    case decodingFailed
+    case noDataFound
     
     var errorDescription: String? {
         switch self {
@@ -12,6 +14,10 @@ enum DataControllerError: LocalizedError {
             return "Failed to save profile to database"
         case .contextSaveFailed:
             return "Failed to save context changes"
+        case .decodingFailed:
+            return "Failed to decode saved data"
+        case .noDataFound:
+            return "No profile data found"
         }
     }
 }
@@ -21,6 +27,12 @@ class DataController: ObservableObject {
     static let shared = DataController()
     
     let container: ModelContainer
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    
+    // Cache for quick access
+    @Published private(set) var cachedProfile: PlayerEssentials?
+    @Published private(set) var isOffline = false
     
     private init() {
         do {
@@ -35,6 +47,7 @@ class DataController: ObservableObject {
         
         // Start a transaction
         context.autosaveEnabled = false
+        defer { context.autosaveEnabled = true }
         
         // Delete any existing profiles first
         let descriptor = FetchDescriptor<PlayerModel>()
@@ -45,15 +58,11 @@ class DataController: ObservableObject {
         
         // Save deletion
         if context.hasChanges {
-            do {
-                try context.save()
-            } catch {
-                throw DataControllerError.contextSaveFailed
-            }
+            try context.save()
         }
         
         // Create new profile
-        let essentialsData = try JSONEncoder().encode(player)
+        let essentialsData = try encoder.encode(player)
         let model = PlayerModel(
             tag: player.playerTag,
             name: player.playerName,
@@ -70,15 +79,10 @@ class DataController: ObservableObject {
         context.insert(model)
         
         // Force save immediately
-        do {
-            try context.save()
-        } catch {
-            print("Save error: \(error)")
-            throw DataControllerError.contextSaveFailed
-        }
+        try context.save()
         
-        // Re-enable autosave
-        context.autosaveEnabled = true
+        // Update cache
+        cachedProfile = player
         
         // Small delay to ensure persistence
         try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
@@ -90,14 +94,18 @@ class DataController: ObservableObject {
         let savedModels = try context.fetch(verifyDescriptor)
         
         if savedModels.isEmpty {
+            cachedProfile = nil
             throw DataControllerError.saveFailed
         }
     }
     
-    func getProfile() async throws -> PlayerEssentials? {
-        let context = container.mainContext
+    func getProfile(forceRefresh: Bool = false) async throws -> PlayerEssentials? {
+        // Return cached version if available and not forcing refresh
+        if !forceRefresh, let cached = cachedProfile {
+            return cached
+        }
         
-        // Force fetch fresh data
+        let context = container.mainContext
         let descriptor = FetchDescriptor<PlayerModel>(
             sortBy: [SortDescriptor(\.lastUpdated, order: .reverse)]
         )
@@ -106,18 +114,27 @@ class DataController: ObservableObject {
         
         guard let model = models.first,
               let data = model.essentialsData else {
+            cachedProfile = nil
             return nil
         }
         
         do {
-            return try JSONDecoder().decode(PlayerEssentials.self, from: data)
+            let profile = try decoder.decode(PlayerEssentials.self, from: data)
+            cachedProfile = profile
+            return profile
         } catch {
+            cachedProfile = nil
             print("Failed to decode player essentials: \(error)")
-            throw error
+            throw DataControllerError.decodingFailed
         }
     }
     
     func hasProfile() async -> Bool {
+        // Check cache first
+        if cachedProfile != nil {
+            return true
+        }
+        
         let context = container.mainContext
         let descriptor = FetchDescriptor<PlayerModel>()
         
@@ -133,6 +150,7 @@ class DataController: ObservableObject {
     func deleteProfile() async throws {
         let context = container.mainContext
         context.autosaveEnabled = false
+        defer { context.autosaveEnabled = true }
         
         let descriptor = FetchDescriptor<PlayerModel>()
         let profiles = try context.fetch(descriptor)
@@ -145,9 +163,14 @@ class DataController: ObservableObject {
             try context.save()
         }
         
-        context.autosaveEnabled = true
+        // Clear cache
+        cachedProfile = nil
         
         // Add a small delay to ensure deletion is complete
         try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+    }
+    
+    func setOfflineStatus(_ offline: Bool) {
+        isOffline = offline
     }
 }

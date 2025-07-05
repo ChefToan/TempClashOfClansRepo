@@ -12,11 +12,19 @@ struct ProgressBar: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color.gray.opacity(0.3))
                 
-                // Progress
+                // Progress fill
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(color)
+                    .fill(
+                        LinearGradient(
+                            colors: [color, color.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .frame(width: geometry.size.width * (value / 100))
+                    .animation(.easeOut(duration: 0.3), value: value)
                 
+                // Percentage text - right aligned
                 HStack {
                     Spacer()
                     Text(String(format: "%.1f%%", value))

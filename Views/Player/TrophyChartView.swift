@@ -1,5 +1,6 @@
 // TrophyChartView.swift
 import SwiftUI
+import Kingfisher
 
 struct TrophyChartView: View {
     let playerTag: String
@@ -30,45 +31,8 @@ struct TrophyChartView: View {
                 Color(UIColor.secondarySystemBackground)
                 
                 if let url = chartURL {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .onTapGesture {
-                                    showFullScreen = true
-                                    HapticManager.shared.lightImpactFeedback()
-                                }
-                                .onAppear {
-                                    isLoading = false
-                                    hasError = false
-                                }
-                        case .failure:
-                            VStack(spacing: 10) {
-                                Image(systemName: "chart.line.downtrend.xyaxis")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.secondary)
-                                Text("Failed to load chart")
-                                    .foregroundColor(.secondary)
-                                
-                                Button {
-                                    retryCount += 1
-                                } label: {
-                                    Text("Retry")
-                                        .font(.caption)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 8)
-                                        .background(Constants.blue)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(8)
-                                }
-                            }
-                            .onAppear {
-                                isLoading = false
-                                hasError = true
-                            }
-                        case .empty:
+                    KFImage(url)
+                        .placeholder {
                             VStack {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: Constants.blue))
@@ -78,14 +42,22 @@ struct TrophyChartView: View {
                                     .foregroundColor(.secondary)
                                     .padding(.top, 8)
                             }
-                            .onAppear {
-                                isLoading = true
-                            }
-                        @unknown default:
-                            EmptyView()
                         }
-                    }
-                    .id(retryCount) // Force reload when retry is pressed
+                        .onSuccess { _ in
+                            isLoading = false
+                            hasError = false
+                        }
+                        .onFailure { _ in
+                            isLoading = false
+                            hasError = true
+                        }
+                        .fade(duration: 0.3)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .onTapGesture {
+                            HapticManager.shared.lightImpactFeedback()
+                            showFullScreen = true
+                        }
                 } else {
                     VStack(spacing: 10) {
                         Image(systemName: "exclamationmark.triangle")
@@ -93,6 +65,32 @@ struct TrophyChartView: View {
                             .foregroundColor(.secondary)
                         Text("Invalid player tag")
                             .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Error state
+                if hasError && !isLoading {
+                    VStack(spacing: 10) {
+                        Image(systemName: "chart.line.downtrend.xyaxis")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("Failed to load chart")
+                            .foregroundColor(.secondary)
+                        
+                        Button {
+                            HapticManager.shared.lightImpactFeedback()
+                            retryCount += 1
+                            isLoading = true
+                            hasError = false
+                        } label: {
+                            Text("Retry")
+                                .font(.caption)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Constants.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
                     }
                 }
                 
@@ -123,6 +121,7 @@ struct TrophyChartView: View {
         }
         .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
+        .id(retryCount) // Force reload on retry
         .fullScreenCover(isPresented: $showFullScreen) {
             if let url = chartURL {
                 ImageViewer(url: url, isPresented: $showFullScreen)

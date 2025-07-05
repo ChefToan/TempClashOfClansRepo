@@ -1,5 +1,6 @@
 // PlayerDetailView.swift
 import SwiftUI
+import AlertToast
 
 struct PlayerDetailView: View {
     let player: PlayerEssentials
@@ -7,6 +8,7 @@ struct PlayerDetailView: View {
     let onSaveProfile: () -> Void
     let onNewSearch: () -> Void
     @State private var isSavingProfile = false
+    @EnvironmentObject var networkMonitor: NetworkMonitor
     
     var body: some View {
         ZStack {
@@ -24,6 +26,7 @@ struct PlayerDetailView: View {
                     HStack(spacing: 15) {
                         Button {
                             if !isSavingProfile {
+                                HapticManager.shared.mediumImpactFeedback()
                                 isSavingProfile = true
                                 onSaveProfile()
                             }
@@ -46,8 +49,11 @@ struct PlayerDetailView: View {
                             .cornerRadius(12)
                         }
                         .disabled(isSavingProfile)
+                        .scaleEffect(isSavingProfile ? 0.95 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSavingProfile)
                         
                         Button {
+                            HapticManager.shared.lightImpactFeedback()
                             onNewSearch()
                         } label: {
                             HStack {
@@ -62,54 +68,56 @@ struct PlayerDetailView: View {
                             .cornerRadius(12)
                         }
                     }
+                    .transition(.scale.combined(with: .opacity))
                     
                     PlayerHeaderView(player: player)
+                        .transition(.scale.combined(with: .opacity))
                     
                     if player.league?.name.contains("Legend") == true {
                         TrophyChartView(playerTag: player.playerTag)
+                            .transition(.scale.combined(with: .opacity))
                     }
                     
                     LeagueInfoView(player: player)
+                        .transition(.scale.combined(with: .opacity))
                     
                     PlayerStatsView(player: player)
+                        .transition(.scale.combined(with: .opacity))
                     
                     UnitProgressionView(player: player)
+                        .transition(.scale.combined(with: .opacity))
                 }
-                .padding()
+                .padding(.horizontal)
             }
             .refreshable {
-                await viewModel.refreshPlayer()
+                await performRefresh()
             }
         }
         .navigationTitle("Player Details")
         .navigationBarTitleDisplayMode(.inline)
-        .overlay {
-            if viewModel.showSuccess {
-                VStack {
-                    Spacer()
-                    
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text("Profile Saved Successfully!")
-                            .fontWeight(.medium)
-                    }
-                    .padding()
-                    .background(Color.black.opacity(0.9))
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding(.bottom, 50)
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.spring(), value: viewModel.showSuccess)
-            }
+        .toast(isPresenting: $viewModel.showSuccess) {
+            AlertToast(
+                type: .complete(Color.green),
+                title: "Profile Saved!",
+                subTitle: "Switching to your profile..."
+            )
         }
-        .alert("Error", isPresented: $viewModel.showError) {
-            Button("OK") {
-                viewModel.showError = false
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "Unknown error")
+        .toast(isPresenting: $viewModel.showError) {
+            AlertToast(
+                type: .error(Color.red),
+                title: "Error",
+                subTitle: viewModel.errorMessage
+            )
         }
+    }
+    
+    private func performRefresh() async {
+        guard networkMonitor.isConnected else {
+            HapticManager.shared.errorFeedback()
+            return
+        }
+        
+        HapticManager.shared.mediumImpactFeedback()
+        await viewModel.refreshPlayer()
     }
 }

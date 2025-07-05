@@ -1,10 +1,15 @@
 // MyProfileView.swift
 import SwiftUI
+import AlertToast
+import Lottie
 
 struct MyProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @EnvironmentObject var tabState: TabState
+    @EnvironmentObject var dataController: DataController
+    @EnvironmentObject var networkMonitor: NetworkMonitor
     @State private var hasInitiallyLoaded = false
+    @State private var isRefreshing = false
     
     var body: some View {
         NavigationStack {
@@ -20,6 +25,22 @@ struct MyProfileView: View {
                 if let player = viewModel.player {
                     ScrollView {
                         VStack(spacing: 12) {
+                            // Offline indicator
+                            if dataController.isOffline {
+                                HStack {
+                                    Image(systemName: "wifi.slash")
+                                        .foregroundColor(.orange)
+                                    Text("Offline Mode - Showing cached data")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.orange.opacity(0.2))
+                                .cornerRadius(8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                            }
+                            
                             PlayerHeaderView(player: player)
                             
                             LeagueInfoView(player: player)
@@ -32,19 +53,20 @@ struct MyProfileView: View {
                             
                             UnitProgressionView(player: player)
                         }
-                        .padding()
+                        .padding(.horizontal)
                     }
                     .refreshable {
-                        await viewModel.refreshProfile()
+                        await performRefresh()
                     }
                 } else if viewModel.noProfile && !viewModel.isLoading {
-                    // No profile view
+                    // No profile view with Lottie animation
                     VStack(spacing: 30) {
                         Spacer()
                         
-                        Image(systemName: "person.crop.circle.badge.questionmark")
-                            .font(.system(size: 100))
-                            .foregroundColor(Constants.blue.opacity(0.7))
+                        // Lottie animation placeholder
+                        LottieView(animation: .named("empty-state"))
+                            .looping()
+                            .frame(width: 200, height: 200)
                         
                         VStack(spacing: 10) {
                             Text("No Profile Saved")
@@ -58,6 +80,7 @@ struct MyProfileView: View {
                         }
                         
                         Button {
+                            HapticManager.shared.lightImpactFeedback()
                             tabState.switchToSearch()
                         } label: {
                             HStack {
@@ -110,13 +133,32 @@ struct MyProfileView: View {
                     LoadingView()
                 }
             }
+            .toast(isPresenting: $isRefreshing, duration: 1) {
+                AlertToast(type: .loading, title: "Refreshing...")
+            }
             .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
                 Button("OK") {
+                    HapticManager.shared.errorFeedback()
                     viewModel.errorMessage = nil
                 }
             } message: {
                 Text(viewModel.errorMessage ?? "Unknown error")
             }
         }
+    }
+    
+    private func performRefresh() async {
+        guard networkMonitor.isConnected else {
+            HapticManager.shared.errorFeedback()
+            return
+        }
+        
+        isRefreshing = true
+        HapticManager.shared.mediumImpactFeedback()
+        
+        await viewModel.refreshProfile()
+        
+        isRefreshing = false
+        HapticManager.shared.successFeedback()
     }
 }

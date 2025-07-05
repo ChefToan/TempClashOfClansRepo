@@ -1,5 +1,6 @@
 // SettingsView.swift
 import SwiftUI
+import AlertToast
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
@@ -32,6 +33,7 @@ struct SettingsView: View {
                             .padding(.leading, 4)
 
                             Button(action: {
+                                HapticManager.shared.lightImpactFeedback()
                                 showDeleteConfirmation = true
                             }) {
                                 HStack {
@@ -50,10 +52,6 @@ struct SettingsView: View {
                             .padding(.horizontal, 4)
                         }
                         .padding(.horizontal)
-//
-//                        Divider()
-//                            .background(Color.gray.opacity(0.3))
-//                            .padding(.horizontal)
 
                         // About Section
                         VStack(alignment: .leading, spacing: 16) {
@@ -119,8 +117,11 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .alert("Delete Profile?", isPresented: $showDeleteConfirmation) {
-                Button("Cancel", role: .cancel) { }
+                Button("Cancel", role: .cancel) {
+                    HapticManager.shared.lightImpactFeedback()
+                }
                 Button("Delete", role: .destructive) {
+                    HapticManager.shared.mediumImpactFeedback()
                     Task {
                         await viewModel.deleteProfile()
                         showDeleteSuccess = true
@@ -133,32 +134,8 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete your saved profile. This action cannot be undone.")
             }
-            .overlay {
-                if showDeleteSuccess {
-                    VStack {
-                        Spacer()
-                        
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text("Profile Deleted Successfully")
-                                .fontWeight(.medium)
-                        }
-                        .padding()
-                        .background(Color.black.opacity(0.9))
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .padding(.bottom, 50)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                showDeleteSuccess = false
-                            }
-                        }
-                    }
-                }
+            .toast(isPresenting: $showDeleteSuccess, duration: 2) {
+                AlertToast(type: .complete(Color.green), title: "Profile Deleted Successfully")
             }
         }
     }

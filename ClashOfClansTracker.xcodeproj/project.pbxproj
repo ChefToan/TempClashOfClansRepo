@@ -6,6 +6,25 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		549BCC1D2E1894D7007F387A /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 549BCC1C2E1894D7007F387A /* Kingfisher */; };
+		549BCC252E1895BC007F387A /* AlertToast in Frameworks */ = {isa = PBXBuildFile; productRef = 549BCC242E1895BC007F387A /* AlertToast */; };
+		549BCC352E18A4F4007F387A /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 549BCC342E18A4F4007F387A /* Lottie */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		549BCC322E189DA7007F387A /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		549BCB4C2E166041007F387A /* ClashOfClansTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClashOfClansTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -66,6 +85,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				549BCC1D2E1894D7007F387A /* Kingfisher in Frameworks */,
+				549BCC252E1895BC007F387A /* AlertToast in Frameworks */,
+				549BCC352E18A4F4007F387A /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,6 +126,7 @@
 				549BCB482E166041007F387A /* Sources */,
 				549BCB492E166041007F387A /* Frameworks */,
 				549BCB4A2E166041007F387A /* Resources */,
+				549BCC322E189DA7007F387A /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -120,6 +143,9 @@
 			);
 			name = ClashOfClansTracker;
 			packageProductDependencies = (
+				549BCC1C2E1894D7007F387A /* Kingfisher */,
+				549BCC242E1895BC007F387A /* AlertToast */,
+				549BCC342E18A4F4007F387A /* Lottie */,
 			);
 			productName = ClashOfClansTracker;
 			productReference = 549BCB4C2E166041007F387A /* ClashOfClansTracker.app */;
@@ -150,6 +176,11 @@
 			);
 			mainGroup = 549BCB432E166041007F387A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				549BCC1B2E1894D7007F387A /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				549BCC232E1895BC007F387A /* XCRemoteSwiftPackageReference "AlertToast" */,
+				549BCC332E18A4F4007F387A /* XCRemoteSwiftPackageReference "lottie-spm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 549BCB4D2E166041007F387A /* Products */;
 			projectDirPath = "";
@@ -402,6 +433,51 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		549BCC1B2E1894D7007F387A /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.4.0;
+			};
+		};
+		549BCC232E1895BC007F387A /* XCRemoteSwiftPackageReference "AlertToast" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/elai950/AlertToast";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.9;
+			};
+		};
+		549BCC332E18A4F4007F387A /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		549BCC1C2E1894D7007F387A /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 549BCC1B2E1894D7007F387A /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+		549BCC242E1895BC007F387A /* AlertToast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 549BCC232E1895BC007F387A /* XCRemoteSwiftPackageReference "AlertToast" */;
+			productName = AlertToast;
+		};
+		549BCC342E18A4F4007F387A /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 549BCC332E18A4F4007F387A /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 549BCB442E166041007F387A /* Project object */;
 }

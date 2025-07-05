@@ -1,6 +1,7 @@
 // ImageViewer.swift
 import SwiftUI
 import Photos
+import Kingfisher
 
 struct ImageViewer: View {
     let url: URL?
@@ -12,103 +13,98 @@ struct ImageViewer: View {
     @State private var loadedImage: UIImage?
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
+    @State private var isLoadingImage = false
     
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .scaleEffect(scale)
-                        .offset(offset)
-                        .onAppear {
-                            // Convert SwiftUI Image to UIImage for saving
-                            Task {
-                                if let url = url,
-                                   let data = try? Data(contentsOf: url),
-                                   let uiImage = UIImage(data: data) {
-                                    loadedImage = uiImage
-                                }
-                            }
-                        }
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    let delta = value / lastScale
-                                    lastScale = value
-                                    scale = min(max(scale * delta, 1), 4)
-                                }
-                                .onEnded { _ in
-                                    lastScale = 1.0
-                                    if scale < 1 {
-                                        withAnimation {
-                                            scale = 1
-                                            offset = .zero
-                                        }
-                                    }
-                                }
-                        )
-                        .simultaneousGesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    offset = CGSize(
-                                        width: lastOffset.width + value.translation.width,
-                                        height: lastOffset.height + value.translation.height
-                                    )
-                                }
-                                .onEnded { _ in
-                                    lastOffset = offset
-                                    if scale <= 1 {
-                                        withAnimation {
-                                            offset = .zero
-                                        }
-                                    }
-                                }
-                        )
-                        .onTapGesture(count: 2) {
-                            withAnimation {
-                                if scale > 1 {
-                                    scale = 1
-                                    offset = .zero
-                                } else {
-                                    scale = 2
-                                }
-                            }
-                        }
-                        .contextMenu {
-                            Button {
-                                saveImage()
-                            } label: {
-                                Label("Save Image", systemImage: "square.and.arrow.down")
-                            }
-                            
-                            Button {
-                                copyImage()
-                            } label: {
-                                Label("Copy Image", systemImage: "doc.on.doc")
-                            }
-                            
-                            ShareLink(item: url ?? URL(string: "")!) {
-                                Label("Share", systemImage: "square.and.arrow.up")
-                            }
-                        }
-                case .failure(_):
-                    VStack {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                        Text("Failed to load image")
-                            .foregroundColor(.white)
+            if let url = url {
+                KFImage(url)
+                    .onSuccess { result in
+                        loadedImage = result.image
                     }
-                case .empty:
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                @unknown default:
-                    EmptyView()
+                    .onFailure { error in
+                        print("Failed to load image: \(error)")
+                    }
+                    .placeholder {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                    }
+                    .fade(duration: 0.3)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .scaleEffect(scale)
+                    .offset(offset)
+                    .gesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                let delta = value / lastScale
+                                lastScale = value
+                                scale = min(max(scale * delta, 1), 4)
+                            }
+                            .onEnded { _ in
+                                lastScale = 1.0
+                                if scale < 1 {
+                                    withAnimation {
+                                        scale = 1
+                                        offset = .zero
+                                    }
+                                }
+                            }
+                    )
+                    .simultaneousGesture(
+                        DragGesture()
+                            .onChanged { value in
+                                offset = CGSize(
+                                    width: lastOffset.width + value.translation.width,
+                                    height: lastOffset.height + value.translation.height
+                                )
+                            }
+                            .onEnded { _ in
+                                lastOffset = offset
+                                if scale <= 1 {
+                                    withAnimation {
+                                        offset = .zero
+                                    }
+                                }
+                            }
+                    )
+                    .onTapGesture(count: 2) {
+                        withAnimation {
+                            if scale > 1 {
+                                scale = 1
+                                offset = .zero
+                            } else {
+                                scale = 2
+                            }
+                        }
+                    }
+                    .contextMenu {
+                        Button {
+                            saveImage()
+                        } label: {
+                            Label("Save Image", systemImage: "square.and.arrow.down")
+                        }
+                        
+                        Button {
+                            copyImage()
+                        } label: {
+                            Label("Copy Image", systemImage: "doc.on.doc")
+                        }
+                        
+                        ShareLink(item: url) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                    }
+            } else {
+                VStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundColor(.white)
+                    Text("No image URL provided")
+                        .foregroundColor(.white)
                 }
             }
             
@@ -129,6 +125,19 @@ struct ImageViewer: View {
                 }
                 Spacer()
             }
+            
+            // Loading overlay for save operation
+            if isLoadingImage {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                
+                ProgressView("Loading image...")
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.black.opacity(0.8))
+                    .cornerRadius(10)
+            }
         }
         .alert("Save Image", isPresented: $showSaveAlert) {
             Button("OK", role: .cancel) { }
@@ -138,15 +147,40 @@ struct ImageViewer: View {
     }
     
     private func saveImage() {
-        guard let image = loadedImage else {
-            saveAlertMessage = "Image not loaded yet"
+        guard let url = url else {
+            saveAlertMessage = "No image URL available"
             showSaveAlert = true
             return
         }
         
+        // If we already have the image loaded from Kingfisher, use it
+        if let image = loadedImage {
+            performSave(with: image)
+        } else {
+            // Otherwise, download it again
+            isLoadingImage = true
+            
+            KingfisherManager.shared.retrieveImage(with: url) { result in
+                DispatchQueue.main.async {
+                    isLoadingImage = false
+                    
+                    switch result {
+                    case .success(let imageResult):
+                        performSave(with: imageResult.image)
+                    case .failure(let error):
+                        saveAlertMessage = "Failed to download image: \(error.localizedDescription)"
+                        showSaveAlert = true
+                        HapticManager.shared.errorFeedback()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func performSave(with image: UIImage) {
         PHPhotoLibrary.requestAuthorization { status in
             switch status {
-            case .authorized:
+            case .authorized, .limited:
                 PHPhotoLibrary.shared().performChanges {
                     PHAssetChangeRequest.creationRequestForAsset(from: image)
                 } completionHandler: { success, error in
@@ -172,21 +206,6 @@ struct ImageViewer: View {
                 PHPhotoLibrary.requestAuthorization { _ in
                     saveImage()
                 }
-            case .limited:
-                // Still can save with limited access
-                PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.creationRequestForAsset(from: image)
-                } completionHandler: { success, _ in
-                    DispatchQueue.main.async {
-                        saveAlertMessage = success ? "Image saved to Photos" : "Failed to save image"
-                        showSaveAlert = true
-                        if success {
-                            HapticManager.shared.successFeedback()
-                        } else {
-                            HapticManager.shared.errorFeedback()
-                        }
-                    }
-                }
             @unknown default:
                 break
             }
@@ -194,15 +213,37 @@ struct ImageViewer: View {
     }
     
     private func copyImage() {
-        guard let image = loadedImage else {
-            saveAlertMessage = "Image not loaded yet"
+        // If we already have the image loaded, use it
+        if let image = loadedImage {
+            UIPasteboard.general.image = image
+            saveAlertMessage = "Image copied to clipboard"
             showSaveAlert = true
-            return
+            HapticManager.shared.successFeedback()
+        } else if let url = url {
+            // Otherwise, download it
+            isLoadingImage = true
+            
+            KingfisherManager.shared.retrieveImage(with: url) { result in
+                DispatchQueue.main.async {
+                    isLoadingImage = false
+                    
+                    switch result {
+                    case .success(let imageResult):
+                        UIPasteboard.general.image = imageResult.image
+                        saveAlertMessage = "Image copied to clipboard"
+                        showSaveAlert = true
+                        HapticManager.shared.successFeedback()
+                    case .failure:
+                        saveAlertMessage = "Failed to copy image"
+                        showSaveAlert = true
+                        HapticManager.shared.errorFeedback()
+                    }
+                }
+            }
+        } else {
+            saveAlertMessage = "No image available"
+            showSaveAlert = true
+            HapticManager.shared.errorFeedback()
         }
-        
-        UIPasteboard.general.image = image
-        saveAlertMessage = "Image copied to clipboard"
-        showSaveAlert = true
-        HapticManager.shared.successFeedback()
     }
 }

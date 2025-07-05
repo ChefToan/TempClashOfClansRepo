@@ -1,5 +1,6 @@
 // SearchPlayersView.swift
 import SwiftUI
+import AlertToast
 
 struct SearchPlayersView: View {
     @StateObject private var viewModel = SearchViewModel()
@@ -33,6 +34,8 @@ struct SearchPlayersView: View {
                                 .font(.system(size: 80))
                                 .foregroundColor(Constants.blue)
                         }
+                        .scaleEffect(isSearchFieldFocused ? 0.8 : 1.0)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isSearchFieldFocused)
                         
                         // Title
                         VStack(spacing: 10) {
@@ -69,6 +72,7 @@ struct SearchPlayersView: View {
                                 
                                 if !viewModel.searchTag.isEmpty {
                                     Button {
+                                        HapticManager.shared.lightImpactFeedback()
                                         viewModel.searchTag = ""
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
@@ -81,8 +85,9 @@ struct SearchPlayersView: View {
                             .cornerRadius(15)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 15)
-                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    .stroke(isSearchFieldFocused ? Constants.blue : Color.white.opacity(0.2), lineWidth: 1)
                             )
+                            .animation(.easeInOut(duration: 0.2), value: isSearchFieldFocused)
                             
                             Button {
                                 performSearch()
@@ -105,6 +110,8 @@ struct SearchPlayersView: View {
                                 .cornerRadius(15)
                             }
                             .disabled(viewModel.searchTag.isEmpty || viewModel.isLoading)
+                            .scaleEffect(viewModel.searchTag.isEmpty ? 0.95 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.searchTag.isEmpty)
                         }
                         .padding(.horizontal, 40)
                         
@@ -148,14 +155,25 @@ struct SearchPlayersView: View {
                             }
                         }
                     )
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing),
+                        removal: .move(edge: .leading)
+                    ))
                 }
             }
-            .alert("Error", isPresented: $viewModel.showError) {
-                Button("OK") {
-                    viewModel.showError = false
-                }
-            } message: {
-                Text(viewModel.errorMessage ?? "Unknown error")
+            .toast(isPresenting: $viewModel.showError) {
+                AlertToast(
+                    type: .error(Color.red),
+                    title: "Error",
+                    subTitle: viewModel.errorMessage
+                )
+            }
+            .toast(isPresenting: $viewModel.showSuccess) {
+                AlertToast(
+                    type: .complete(Color.green),
+                    title: "Success",
+                    subTitle: "Profile saved successfully!"
+                )
             }
             .overlay {
                 if viewModel.isLoading && viewModel.player == nil {
@@ -167,6 +185,7 @@ struct SearchPlayersView: View {
     
     private func performSearch() {
         isSearchFieldFocused = false
+        HapticManager.shared.mediumImpactFeedback()
         Task {
             await viewModel.searchPlayer()
             if viewModel.player != nil {

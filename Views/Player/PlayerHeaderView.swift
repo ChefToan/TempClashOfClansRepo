@@ -1,5 +1,6 @@
 // PlayerHeaderView.swift
 import SwiftUI
+import Kingfisher
 
 struct PlayerHeaderView: View {
     let player: PlayerEssentials
@@ -66,15 +67,15 @@ struct PlayerHeaderView: View {
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.7))
                             
-                            AsyncImage(url: URL(string: clan.badgeUrls.medium)) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            } placeholder: {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            }
-                            .frame(width: 60, height: 60)
+                            KFImage(URL(string: clan.badgeUrls.medium))
+                                .placeholder {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                }
+                                .fade(duration: 0.25)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 60, height: 60)
                             
                             if let role = player.role {
                                 Text(formatRole(role))

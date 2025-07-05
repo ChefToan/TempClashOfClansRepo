@@ -1,7 +1,7 @@
 // APIService.swift
 import Foundation
 
-actor APIService {
+class APIService {
     static let shared = APIService()
     
     private let baseURL = "https://api.cheftoan.com"
@@ -60,7 +60,7 @@ actor APIService {
         }
     }
     
-    // Get chart URL for player
+    // Get chart URL for player - Not async, just returns URL
     func getChartURL(tag: String) -> URL? {
         let formattedTag = formatTag(tag)
         let urlString = "\(baseURL)/chart?tag=\(formattedTag)"

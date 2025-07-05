@@ -1,8 +1,9 @@
 // ClashOfClansTrackerApp.swift
 import SwiftUI
 import SwiftData
+import Network
 
-enum TabSection: Int {
+enum TabSection: Int, CaseIterable {
     case search = 0
     case profile = 1
     case settings = 2
@@ -12,6 +13,7 @@ enum TabSection: Int {
 struct ClashOfClansTrackerApp: App {
     @StateObject private var dataController = DataController.shared
     @StateObject private var tabState = TabState.shared
+    @StateObject private var networkMonitor = NetworkMonitor()
     @State private var hasCheckedProfile = false
     
     var body: some Scene {
@@ -45,10 +47,11 @@ struct ClashOfClansTrackerApp: App {
                 .tag(TabSection.settings)
             }
             .tint(Constants.blue)
-            .preferredColorScheme(.dark) // Always dark mode
+            .environment(\.colorScheme, .dark) // Force dark mode
             .modelContainer(dataController.container)
             .environmentObject(tabState)
             .environmentObject(dataController)
+            .environmentObject(networkMonitor)
             .task {
                 if !hasCheckedProfile {
                     hasCheckedProfile = true
@@ -62,6 +65,30 @@ struct ClashOfClansTrackerApp: App {
                     }
                 }
             }
+            .onChange(of: networkMonitor.isConnected) { _, isConnected in
+                dataController.setOfflineStatus(!isConnected)
+            }
+            .gesture(
+                DragGesture()
+                    .onEnded { value in
+                        let threshold: CGFloat = 50
+                        let currentIndex = tabState.selectedTab.rawValue
+                        
+                        if value.translation.width > threshold {
+                            // Swipe right - go to previous tab
+                            if currentIndex > 0 {
+                                HapticManager.shared.selectionFeedback()
+                                tabState.selectedTab = TabSection(rawValue: currentIndex - 1) ?? .search
+                            }
+                        } else if value.translation.width < -threshold {
+                            // Swipe left - go to next tab
+                            if currentIndex < TabSection.allCases.count - 1 {
+                                HapticManager.shared.selectionFeedback()
+                                tabState.selectedTab = TabSection(rawValue: currentIndex + 1) ?? .settings
+                            }
+                        }
+                    }
+            )
         }
     }
 }
@@ -89,5 +116,26 @@ class TabState: ObservableObject {
         withAnimation(.spring()) {
             selectedTab = .settings
         }
+    }
+}
+
+// Network monitoring for offline support
+class NetworkMonitor: ObservableObject {
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "NetworkMonitor")
+    
+    @Published var isConnected = true
+    
+    init() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isConnected = path.status == .satisfied
+            }
+        }
+        monitor.start(queue: queue)
+    }
+    
+    deinit {
+        monitor.cancel()
     }
 }
